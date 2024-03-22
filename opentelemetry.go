@@ -215,7 +215,7 @@ func setup(addr string, options ...SetupOption) error {
 
 var meterProvider *sdkmetric.MeterProvider
 
-func newMetricHTTPExporter(addr string, o *setupOptions) (*sdkmetric.Exporter, error) {
+func newMetricHTTPExporter(addr string, o *setupOptions) (sdkmetric.Exporter, error) {
 	otlpMetricOpts := []otlpmetrichttp.Option{
 		otlpmetrichttp.WithInsecure(),
 		otlpmetrichttp.WithEndpoint(addr),
@@ -229,10 +229,10 @@ func newMetricHTTPExporter(addr string, o *setupOptions) (*sdkmetric.Exporter, e
 		}),
 	}
 	exp, err := otlpmetrichttp.New(context.Background(), otlpMetricOpts...)
-	return &exp, err
+	return exp, err
 }
 
-func newMetricGrpcExporter(addr string, o *setupOptions) (*sdkmetric.Exporter, error) {
+func newMetricGrpcExporter(addr string, o *setupOptions) (sdkmetric.Exporter, error) {
 	otlpMetricOpts := []otlpmetricgrpc.Option{
 		otlpmetricgrpc.WithInsecure(),
 		otlpmetricgrpc.WithEndpoint(addr),
@@ -250,11 +250,11 @@ func newMetricGrpcExporter(addr string, o *setupOptions) (*sdkmetric.Exporter, e
 		otlpMetricOpts = append(otlpMetricOpts, otlpmetricgrpc.WithDialOption(o.grpcDialOptions...))
 	}
 	exp, err := otlpmetricgrpc.New(context.Background(), otlpMetricOpts...)
-	return &exp, err
+	return exp, err
 }
 
 func setupMetric(addr string, res *resource.Resource, o *setupOptions) (err error) {
-	var exporter *sdkmetric.Exporter
+	var exporter sdkmetric.Exporter
 	if o.httpEnabled {
 		exporter, err = newMetricHTTPExporter(addr, o)
 	} else {
@@ -264,7 +264,7 @@ func setupMetric(addr string, res *resource.Resource, o *setupOptions) (err erro
 		return err
 	}
 	meterProvider = sdkmetric.NewMeterProvider(
-		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(*exporter)), sdkmetric.WithResource(res))
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exporter)), sdkmetric.WithResource(res))
 	otel.SetMeterProvider(meterProvider)
 	return nil
 }
